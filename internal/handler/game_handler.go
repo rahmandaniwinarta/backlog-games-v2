@@ -12,7 +12,11 @@ type Game struct {
 	Title string `json:"title"`
 }
 
-var games []Game
+var games = []Game{
+	{ID: 1, Title: "Hollow Knight"},
+	{ID: 2, Title: "Celeste"},
+	{ID: 3, Title: "Elden Ring"},
+}
 
 func GetGames(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -60,15 +64,47 @@ func DeleteGames(w http.ResponseWriter, r *http.Request) {
 
 	for i, game := range games {
 		if game.ID == id {
-			front := games[:i]
-			back := games[i+1]
-			games = append(front, back)
+			games = append(games[:i], games[i+1:]...)
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Game Deleted"))
 			return
 		}
 	}
-
 	http.Error(w, "Game not found", http.StatusNotFound)
+}
 
+func UpdateGames(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+
+	//ambil ID dari path
+	takeID := strings.Split(r.URL.Path, "/")
+	if len(takeID) < 3 {
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
+	}
+	idStr := takeID[2] // PUT /games/2 index 0,1,2
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	}
+
+	//decode JSON body
+	var updatedGames Game
+	err = json.NewDecoder(r.Body).Decode(&updatedGames)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	for i, game := range games {
+		if game.ID == id {
+			games[i].Title = updatedGames.Title
+
+			w.Header().Set("Content Type", "application/json")
+			json.NewEncoder(w).Encode(games[i])
+			return
+		}
+	}
+	http.Error(w, "Game not found", http.StatusNotFound)
 }
