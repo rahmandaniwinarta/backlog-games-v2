@@ -1,3 +1,6 @@
 development logs
 1. 05/06/2025   Developing CRD feature with buit-in net/http package and dummy data 
-2. 08/06/2025   Devolping Update and fix Delete handler logic 
+2. 08/06/2025   Devoloping Update and fix Delete handler logic
+3. 09/06/2025   - Refactor remove global slice in handler turn into model/game.go
+                - Add storage/memory to handle memory function without DB
+                - Refactor handler

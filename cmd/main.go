@@ -37,9 +37,9 @@ func main() {
 		case http.MethodPut:
 			handler.UpdateGames(w, r)
 			/*
-				curl -X PUT http://localhost:8080/games/1 \
+				curl -X PUT http://localhost:8080/games/2 \
 						-H "Content-Type: application/json" \
-				  		-d '{"title": "Elden Ring"}'
+				  		-d '{"title": "Sekiro"}'
 			*/
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

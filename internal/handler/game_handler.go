@@ -1,46 +1,38 @@
 package handler
 
 import (
+	"backlog-games-v2/internal/model"
+	"backlog-games-v2/internal/storage"
 	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-type Game struct {
-	ID    int    `json:"id"`
-	Title string `json:"title"`
-}
-
-var games = []Game{
-	{ID: 1, Title: "Hollow Knight"},
-	{ID: 2, Title: "Celeste"},
-	{ID: 3, Title: "Elden Ring"},
-}
-
 func GetGames(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(games)
+	json.NewEncoder(w).Encode(storage.GetAllGames())
 }
 
 func PostGames(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+	//cek method pas curl kalau ga POST berarti no no
 
-	var NewGame Game
-
-	err := json.NewDecoder(r.Body).Decode(&NewGame)
+	var newGame model.Game
+	err := json.NewDecoder(r.Body).Decode(&newGame) //decode body : misal{"title":"Pokemon"}. decode JSON nya salin ke struct Title karena di struct sudah `json:title`
 	if err != nil {
 		http.Error(w, "Invalid Json", http.StatusBadRequest)
+		return
 	}
 
-	NewGame.ID = len(games) + 1
-	games = append(games, NewGame)
+	newGame.ID = len(storage.GetAllGames()) + 1 //set ID jadi sekarang struct newGames(id +1)
+	storage.AddGame(newGame)                    // new game id + 1 , title dapet dari body
 
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(NewGame)
+	json.NewEncoder(w).Encode(newGame)
 }
 
 func DeleteGames(w http.ResponseWriter, r *http.Request) {
@@ -55,20 +47,16 @@ func DeleteGames(w http.ResponseWriter, r *http.Request) {
 	}
 
 	idStr := deleteThis[2]
-
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "invalid ID", http.StatusBadRequest)
 		return
 	}
 
-	for i, game := range games {
-		if game.ID == id {
-			games = append(games[:i], games[i+1:]...)
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Game Deleted"))
-			return
-		}
+	if storage.DeleteGameByID(id) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Game Deleted"))
+		return
 	}
 	http.Error(w, "Game not found", http.StatusNotFound)
 }
@@ -90,21 +78,18 @@ func UpdateGames(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//decode JSON body
-	var updatedGames Game
+	var updatedGames model.Game
 	err = json.NewDecoder(r.Body).Decode(&updatedGames)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	for i, game := range games {
-		if game.ID == id {
-			games[i].Title = updatedGames.Title
-
-			w.Header().Set("Content Type", "application/json")
-			json.NewEncoder(w).Encode(games[i])
-			return
-		}
+	updated, ok := storage.UpdateGameByID(id, updatedGames)
+	if ok {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(updated)
+		return
 	}
 	http.Error(w, "Game not found", http.StatusNotFound)
 }
